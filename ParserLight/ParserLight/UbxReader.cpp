@@ -313,8 +313,8 @@ void UbxReader::read_RAWX(int mjd_check, std::string out_file)
 UbxReader::POSLLH UbxReader::store_HPPOSLLH(char *inbuffer)
 {
 	UbxReader::UBX_HEAD ub_head;
-	ub_head.cl = 0x01; // RAWX class
-	ub_head.id = 0x14; // RAWX id
+	ub_head.cl = 0x01; // HPPOSLLH class
+	ub_head.id = 0x14; // HPPOSLLH id
 
 	UBX_NAV_HPPOSLLH my_hpposllh;
 	POSLLH temp;
@@ -362,8 +362,8 @@ void UbxReader::read_HPPOSLLH(std::string out_file)
 	UbxReader::UBX_HEAD ub_head;
 	bool found = false;
 	bool first = true;
-	ub_head.cl = 0x01; // RAWX class
-	ub_head.id = 0x14; // RAWX id
+	ub_head.cl = 0x01; // HPPOSLLH class
+	ub_head.id = 0x14; // HPPOSLLH id
 	UbxReader::POSLLH my_pos;
 	OutputWriter myWriter;
 	double progress;

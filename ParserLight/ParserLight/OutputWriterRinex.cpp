@@ -11,25 +11,21 @@
 OutputWriterRinex::OutputWriterRinex(int mjd_valid)
 {
 	OutputWriterRinex::mjd_valid = mjd_valid;
-
 	OutputWriterRinex::first_message = true;
-
 	OutputWriterRinex::mjd_first_epoch = 0;
 	OutputWriterRinex::sec_first_epoch = 0;
 	OutputWriterRinex::leap_sec = 0;
-	
-	OutputWriterRinex::receiver_number = 999999;
-	OutputWriterRinex::receiver_type = "generic";
-	OutputWriterRinex::antenna_number = 999999;
-	OutputWriterRinex::comment = "empty comment";
 }
 
-OutputWriterRinex::OutputWriterRinex(int mjd_valid, int receiver_number, std::string receiver_type, int antenna_number, std::string comment)
+OutputWriterRinex::OutputWriterRinex(int mjd_valid, OutputWriterRinex::RINEX_HEADER_META meta_data)
 {
 	OutputWriterRinex::mjd_valid = mjd_valid;
-
 	OutputWriterRinex::first_message = true;
-	set_meta_data(receiver_number, receiver_type, antenna_number, comment)
+	OutputWriterRinex::mjd_first_epoch = 0;
+	OutputWriterRinex::sec_first_epoch = 0;
+	OutputWriterRinex::leap_sec = 0;
+
+	set_meta_data(meta_data);
 }
 
 OutputWriterRinex::~OutputWriterRinex()
@@ -48,8 +44,8 @@ void OutputWriterRinex::open_file(std::string file_name)
 	std::ostringstream string_stream;
 
 	/* Create a name following the rinex naming convention */
-	Utils::YMDHfromMJD(OutputWriterRinex::mjd_first_epoch, &year, &month, &day, &hour);
-	Utils::YearDoyFromMJD(OutputWriterRinex::mjd_first_epoch, &year, &doy);
+	Utils::YMDHfromMJD(OutputWriterRinex::mjd_valid, &year, &month, &day, &hour);
+	Utils::YearDoyFromMJD(OutputWriterRinex::mjd_valid, &year, &doy);
 	// year with 2 digits
 	sprintf(year02, "%02.0f", year - 100 * trunc(year / 100));
 	// add leading zero to DOY
@@ -62,21 +58,9 @@ void OutputWriterRinex::open_file(std::string file_name)
 	file.open(file_name);
 }
 
-void OutputWriterRinex::set_meta_data(int receiver_number, std::string receiver_type, int antenna_number, std::string comment)
+void OutputWriterRinex::set_meta_data(OutputWriterRinex::RINEX_HEADER_META meta_data)
 {
-	if (receiver_type.length() > 20)
-	{
-		std::cout << "Error: receiver type too long (max. 20)\n";
-	}
-	if (antenna_number > 9 || antenna_number < 0)
-	{
-		std::cout << "Error: antenna number between 0 and 9 expected\n";
-	}
-
-	OutputWriterRinex::receiver_number = receiver_number;
-	OutputWriterRinex::receiver_type = receiver_type;
-	OutputWriterRinex::antenna_number = antenna_number;
-	OutputWriterRinex::comment = comment;
+	rinex_header_info = meta_data;
 }
 
 void OutputWriterRinex::set_first_epoch(int mjd, double sec, int leap_sec)
@@ -87,7 +71,8 @@ void OutputWriterRinex::set_first_epoch(int mjd, double sec, int leap_sec)
 }
 
 /* Write a Rinex Observation file, format 2.11 */
-void OutputWriterRinex::write_header() {
+void OutputWriterRinex::write_header() 
+{
 	short int month;
 	short int year;
 	short int minutes;
@@ -113,25 +98,25 @@ void OutputWriterRinex::write_header() {
 	minutes = (int)((sec - hour * 3600) / 60);
 	sec = sec - hour * 3600 - minutes * 60;
 
-	std::string sat_name = "L30";
-
 	/* write header lines  */
 	sprintf(buffer, "     %4.2f           OBSERVATION DATA    M                   RINEX VERSION / TYPE\n", rinex_version);
 	file << buffer;
-	file << "UBX PARSER                              " << std::put_time(&tm, "%d-%m-%y %H:%M") << "      PGM / RUN BY / DATE\n";
-	sprintf(buffer, "                                        ETH Zurich          OBSERVER / AGENCY\n");
+	
+	sprintf(buffer, "%-20s%20s", "UBX PARSER", rinex_header_info.run_by.c_str());
+	file << buffer << std::put_time(&tm, "%d-%m-%y %H:%M") << "      PGM / RUN BY / DATE\n";
+	sprintf(buffer, "%60sMARKER NAME\n", rinex_header_info.marker_name.c_str());
 	file << buffer;
-	sprintf(buffer, "%3s                                                         MARKER NAME\n", sat_name.c_str());
+	sprintf(buffer, "%-60iMARKER NUMBER\n", rinex_header_info.marker_number);
 	file << buffer;
-	sprintf(buffer, "%3s                                                         MARKER NUMBER\n", sat_name.c_str());
+	sprintf(buffer, "%-20s%-40sOBSERVER / AGENCY\n", rinex_header_info.observer.c_str(), rinex_header_info.agency.c_str());
 	file << buffer;
-	sprintf(buffer, "%6u              %-20s                    REC # / TYPE / VERS\n", receiver_number, receiver_type.c_str());
+	sprintf(buffer, "%20i%-20s%20sREC # / TYPE / VERS\n", rinex_header_info.receiver_number, rinex_header_info.receiver_type.c_str(), rinex_header_info.receiver_version.c_str());
 	file << buffer;
-	sprintf(buffer, "                    CUBEANT%1u                                ANT # / TYPE\n", antenna_number);
+	sprintf(buffer, "%20i%20s%20sANT # / TYPE\n", rinex_header_info.antenna_number, rinex_header_info.antenna_type.c_str(), "");
 	file << buffer;
-	sprintf(buffer, "        0.0000        0.0000        0.0000                  APPROX POSITION XYZ\n");
+	sprintf(buffer, "%14.4f%14.4f%14.4f%18sAPPROX POSITION XYZ\n", rinex_header_info.approx_pos_x, rinex_header_info.approx_pos_y, rinex_header_info.approx_pos_z, "");
 	file << buffer;
-	sprintf(buffer, "        0.0000        0.0000        0.0000                  ANTENNA: DELTA H/E/N\n");
+	sprintf(buffer, "%14.4f%14.4f%14.4f%18sANTENNA: DELTA H/E/N\n", rinex_header_info.delta_h, rinex_header_info.delta_e, rinex_header_info.delta_n, "");
 	file << buffer;
 	sprintf(buffer, "     1     1                                                WAVELENGTH FACT L1/2\n");
 	file << buffer;
@@ -148,6 +133,8 @@ void OutputWriterRinex::write_header() {
 	}
 	//sprintf(buffer, "    %2u                                                      # OF SATELLITES\n", num_sats);
 	//file << buffer;
+	sprintf(buffer, "%-60sCOMMENT\n", rinex_header_info.comment.c_str());
+	file << buffer;
 	sprintf(buffer, "                                                            END OF HEADER\n");
 	file << buffer;
 }

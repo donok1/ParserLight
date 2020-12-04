@@ -51,22 +51,61 @@ private:
 
 	int mjd_valid;
 
-	int receiver_number;
-	std::string receiver_type;
-	int antenna_number;
-	std::string comment;
-
 	void write_header();
 	OutputWriterRinex::GNSS_EPOCH store_RAWX(char * inbuffer);
 	void write_message(OutputWriterRinex::GNSS_EPOCH my_gnss_epoch);
 
 public:
+	struct RINEX_HEADER_META
+	{
+		std::string run_by;
+		std::string observer;
+		std::string agency;
+		std::string marker_name;
+		int marker_number;
+		int receiver_number;
+		std::string receiver_type;
+		std::string receiver_version;
+		int antenna_number;
+		std::string antenna_type;
+		double approx_pos_x;
+		double approx_pos_y;
+		double approx_pos_z;
+		double delta_h;
+		double delta_e;
+		double delta_n;
+		std::string comment;
+
+		RINEX_HEADER_META()
+		{
+			run_by = "";
+			observer = "";
+			agency = "";
+			marker_name = "";
+			marker_number = 999999;
+			receiver_number = 999999;
+			receiver_type = "";
+			receiver_version = "";
+			antenna_number = 999999;
+			antenna_type = "";
+			approx_pos_x = 0;
+			approx_pos_y = 0;
+			approx_pos_z = 0;
+			delta_h = 0;
+			delta_e = 0;
+			delta_n = 0;
+			comment = "";
+		}
+	};
+
+	RINEX_HEADER_META rinex_header_info;
+
 	OutputWriterRinex(int mjd_valid);
-	OutputWriterRinex(int mjd_valid, int receiver_number, std::string receiver_type, int antenna_number, std::string comment);
+	OutputWriterRinex(int mjd_valid, OutputWriterRinex::RINEX_HEADER_META meta_data);
 	~OutputWriterRinex();
 
 	void open_file(std::string file_name);
-	void set_meta_data(int receiver_number, std::string receiver_type, int antenna_number, std::string comment);
+	void set_meta_data(OutputWriterRinex::RINEX_HEADER_META meta_data);
 	void set_first_epoch(int mjd, double sec, int leap_sec);
 	void parse_and_write(char * inbuffer);
 

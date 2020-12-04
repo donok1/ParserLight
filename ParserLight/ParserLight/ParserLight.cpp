@@ -25,6 +25,7 @@ int main(int argc, char *argv[])
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// general options
 	std::string file_name;
+	std::string output_file_name = "";
 	bool opt_wait = false;
 	double rate = 0;
 	double threshold = 0.02;
@@ -32,10 +33,7 @@ int main(int argc, char *argv[])
 	// options for RINEX
 	bool rinex_out = false;
 	int mjd_valid = 0;
-	int receiver_number = 999999;
-	std::string receiver_type = "generic";
-	int antenna_number = 999999;
-	std::string comment = "no comment";
+	OutputWriterRinex::RINEX_HEADER_META meta_data;
 
 	// options for position output
 	bool pos_out = false;
@@ -46,59 +44,50 @@ int main(int argc, char *argv[])
 
 	for (int i = 2; i < argc; i = i + 2)
 	{
-
 		// general options
-		if (strcmp(argv[i], "rate") == 0)
-		{
-			rate = atof(argv[i + 1]);
-		}
-		if (strcmp(argv[i], "threshold") == 0)
-		{
-			threshold = atof(argv[i + 1]);
-		}
-		else if (strcmp(argv[i], "wait") == 0)
-		{
-			opt_wait = check_option(argv[i + 1], "wait");
-		}
-
+		if (strcmp(argv[i], "rate") == 0) { rate = atof(argv[i + 1]); continue; };
+		if (strcmp(argv[i], "threshold") == 0) { threshold = atof(argv[i + 1]); continue; };
+		if (strcmp(argv[i], "wait") == 0) { opt_wait = check_option(argv[i + 1], "wait"); continue; };
+		if (strcmp(argv[i], "o") == 0) { output_file_name = argv[i + 1]; continue; };
 
 		// rinex options
-		if (strcmp(argv[i], "rinex") == 0)
-		{
-			rinex_out = check_option(argv[i + 1], "rinex");
-		}
-		if (strcmp(argv[i], "mjd") == 0)
-		{
-			mjd_valid = atoi(argv[i + 1]);
-		}
-		if (strcmp(argv[i], "receiver_number") == 0)
-		{
-			receiver_number = atoi(argv[i + 1]);
-		}
-		if (strcmp(argv[i], "receiver_type") == 0)
-		{
-			receiver_type = argv[i + 1];
-		}
-		if (strcmp(argv[i], "antenna_number") == 0)
-		{
-			antenna_number = atoi(argv[i + 1]);
-		}
-		if (strcmp(argv[i], "comment") == 0)
-		{
-			comment = argv[i + 1];
-		}
-
+		if (strcmp(argv[i], "rinex") == 0) { rinex_out = check_option(argv[i + 1], "rinex"); continue; };
+		if (strcmp(argv[i], "mjd") == 0) { mjd_valid = atoi(argv[i + 1]); continue; };
+		// rinex header info
+		if (strcmp(argv[i], "run_by") == 0) { meta_data.run_by = argv[i + 1]; continue; };
+		if (strcmp(argv[i], "observer") == 0) { meta_data.observer = argv[i + 1]; continue; };
+		if (strcmp(argv[i], "agency") == 0) { meta_data.agency = argv[i + 1]; continue; };
+		if (strcmp(argv[i], "marker_name") == 0) { meta_data.marker_name = argv[i + 1]; continue; };
+		if (strcmp(argv[i], "marker_number") == 0) { meta_data.marker_number = atoi(argv[i + 1]); continue; };
+		if (strcmp(argv[i], "receiver_number") == 0) { meta_data.receiver_number = atoi(argv[i + 1]); continue; };
+		if (strcmp(argv[i], "receiver_type") == 0) { meta_data.receiver_type = argv[i + 1]; continue; };
+		if (strcmp(argv[i], "receiver_version") == 0) { meta_data.receiver_version = argv[i + 1]; continue; };
+		if (strcmp(argv[i], "antenna_number") == 0) { meta_data.antenna_number = atoi(argv[i + 1]); continue; };
+		if (strcmp(argv[i], "antenna_type") == 0) { meta_data.antenna_type = argv[i + 1]; continue; };
+		if (strcmp(argv[i], "approx_pos_x") == 0) { meta_data.approx_pos_x = atof(argv[i + 1]); continue; };
+		if (strcmp(argv[i], "approx_pos_y") == 0) { meta_data.approx_pos_y = atof(argv[i + 1]); continue; };
+		if (strcmp(argv[i], "approx_pos_z") == 0) { meta_data.approx_pos_z = atof(argv[i + 1]); continue; };
+		if (strcmp(argv[i], "delta_h") == 0) { meta_data.delta_h = atof(argv[i + 1]); continue; };
+		if (strcmp(argv[i], "delta_e") == 0) { meta_data.delta_e = atof(argv[i + 1]); continue; };
+		if (strcmp(argv[i], "delta_n") == 0) { meta_data.delta_n = atof(argv[i + 1]); continue; };
+		if (strcmp(argv[i], "comment") == 0) { meta_data.comment = argv[i + 1]; continue; };
 
 		// position options
-		if (strcmp(argv[i], "llh") == 0)
-		{
-			pos_out = check_option(argv[i + 1], "llh");
-		}
-		else
-		{
-			std::cout << argv[i] << " option unknown. Option ignored.\n";
-		}
+		if (strcmp(argv[i], "pos") == 0) { pos_out = check_option(argv[i + 1], "llh"); continue; };
+
+		// unknown options
+		std::cout << argv[i] << " option unknown. Option ignored.\n";
 	}
+
+	// generate output file name
+	if (output_file_name.size() == 0)
+	{
+		output_file_name = file_name;
+	}
+	// remove the extension, if present
+	size_t ind;
+	ind = output_file_name.find_last_of(".");
+	output_file_name = output_file_name.substr(0, ind);
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// check for option consistency
@@ -121,12 +110,12 @@ int main(int argc, char *argv[])
 	OutputWriter::rate = rate; // set the rate for all classes [seconds]
 	OutputWriter::threshold = threshold; // set the threshold applied to the rate [seconds]
 	UbxReader myReader;
-	
+
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// register readers
 	if (rinex_out)
 	{
-		OutputWriterRinex* output_writer_rinex = new OutputWriterRinex(mjd_valid, receiver_number, receiver_type, antenna_number, comment);
+		OutputWriterRinex* output_writer_rinex = new OutputWriterRinex(mjd_valid, meta_data);
 		myReader.register_reader(output_writer_rinex);
 	}
 	
@@ -139,7 +128,7 @@ int main(int argc, char *argv[])
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// processing
 	myReader.open_file(file_name);
-	myReader.read_any_message();
+	myReader.read_any_message(output_file_name);
 	myReader.close_file();
 
 	if (opt_wait)

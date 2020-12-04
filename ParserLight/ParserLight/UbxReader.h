@@ -26,7 +26,7 @@ public:
 	bool open_file(std::string file_name);
 	void close_file();
 
-	void read_any_message();
+	void read_any_message(std::string output_file_name);
 	void extract_next_message(char * message, UbloxSpecs::UBX_HEAD * head_out, bool * found);
 	void register_reader(OutputWriter * my_writer);
 };

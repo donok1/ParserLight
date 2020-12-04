@@ -51,7 +51,7 @@ void UbxReader::close_file(){
 }
 
 
-void UbxReader::read_any_message()
+void UbxReader::read_any_message(std::string output_file_name)
 {
 	double progress;
 	double progress_old = -1;
@@ -59,7 +59,7 @@ void UbxReader::read_any_message()
 	// open all output files
 	for (int i = 0; i < registered_writers.size(); i++)
 	{
-		registered_writers.at(i)->open_file("test");
+		registered_writers.at(i)->open_file(output_file_name);
 	}
 
 	while (true)
@@ -87,8 +87,8 @@ void UbxReader::read_any_message()
 
 				if (ub_head_out.cl == cl && ub_head_out.id == id)
 				{
-					std::cout << std::showbase << std::internal << std::setfill('0');
-					std::cout << "Message found : " << std::hex << static_cast<int>(ub_head_out.cl) << " " << static_cast<int>(ub_head_out.id) << "\n";
+					// std::cout << std::showbase << std::internal << std::setfill('0');
+					// std::cout << "Message found : " << std::hex << static_cast<int>(ub_head_out.cl) << " " << static_cast<int>(ub_head_out.id) << "\n";
 					registered_writers.at(i)->parse_and_write(message);
 				}
 			}
@@ -98,7 +98,6 @@ void UbxReader::read_any_message()
 
 		}
 	}
-	std::cout << "\n";
 	
 	// close all output files
 	for (int i = 0; i < registered_writers.size(); i++)
@@ -108,6 +107,8 @@ void UbxReader::read_any_message()
 	
 	return;
 }
+
+
 
 
 void UbxReader::extract_next_message(char *message, UbloxSpecs::UBX_HEAD *head_out, bool *found)

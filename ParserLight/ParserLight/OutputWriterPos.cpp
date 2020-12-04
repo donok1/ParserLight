@@ -106,8 +106,6 @@ void OutputWriterPos::write_message(OutputWriterPos::POSLLH my_data) {
 
 UbloxSpecs::UBX_HEAD OutputWriterPos::get_reference_header()
 {
-	std::cout << "Child called \n";
-
 	UbloxSpecs::UBX_HEAD my_head;
 	my_head.cl = 0x01;
 	my_head.id = 0x14;

@@ -1,9 +1,9 @@
 #pragma once
-#include "UbxReader.h"
 #include <string>
+#include "UbloxSpecs.h"
 #include "myConstants.h"
 #include <sstream>
-//#include "MyOstream.cpp"
+#include <fstream>
 
 class OutputWriter
 {
@@ -13,23 +13,15 @@ public:
 	~OutputWriter();
 
 	std::ofstream file;
-
-	static double nom_epoch(double epoch)
-	{
-		return round(2 * myConstants::MAX_SAMPLING_RATE*epoch) / (2 * myConstants::MAX_SAMPLING_RATE);
-	}
-
-
+	static double rate; // rate valid for all members
+	static double threshold;
 
 	/* Methods */
-	void OutputWriter::write_rinex_header(UbxReader::GNSS_EPOCH my_gnss_epoch, int receiver_number, std::string receiver_type, int antenna_number, std::string comment); // Rinex header
-	void OutputWriter::write_rinex_obs(UbxReader::GNSS_EPOCH my_gnss_epoch); // Rinex writer 
-	void write_pos(UbxReader::POSLLH my_pos);
-	void OutputWriter::clean_measurements(); // removes bad measurements from my_gnss_epoch. Should be excecuted before synchronise
-	void open_file(std::string file_name);
-	void OutputWriter::open_file(UbxReader::GNSS_EPOCH my_gnss_epoch, std::string file_name);
-	void OutputWriter::close_file();
+	virtual void parse_file(char *inbuffer);
+	
+	virtual void open_file(std::string file_name);
+	virtual void OutputWriter::close_file();
+
+	virtual UbloxSpecs::UBX_HEAD get_reference_header();
+	virtual void parse_and_write(char *inbuffer);
 };
-
-// void OutputWriter::write_obs_file(std::string file_name, std::string comment); // Pseudo Bernese Format 
-

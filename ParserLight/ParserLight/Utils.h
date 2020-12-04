@@ -144,6 +144,19 @@ public:
 
 		return ss;
 	}
+
+	/* STATIC Function to get MJD and seconds within day from miliseconds in week (tow) and week */
+	static void get_mjd(double tow_ms, int week, int *mjd, double *sec)
+	{
+		int dow; // day of week
+		double tow_sec; // time of week in seconds
+		dow = (int)trunc(tow_ms / (1000.0*86400.0));
+		*mjd = 44244 + 7 * week + dow;
+		tow_sec = (double)tow_ms / 1000.0;
+		*sec = tow_sec - 86400 * dow;
+		return;
+	}
+
 	/* 
     void deg2dms(double deg, int *outdeg, int *outmin, double *outsec);
     //QString deg2dmsString(double dbldeg, int secdecimal);
@@ -155,7 +168,8 @@ public:
 	//QString hms2hmsString(int hour, int min, int sec);
 	//QString dmy2dmyString(int day, int month, int year);
     void gpst2date(int gpsweek, double secofweek, int *outyear,int *outmonth,int *outday,int *outhour,int *outmin,double *outsec);
-    std::vector<std::string> tokenize (std::string str);
+    
+	<std::string> tokenize (std::string str);
     std::vector<std::string> tokenize (std::string str, char separator);
 	*/
 

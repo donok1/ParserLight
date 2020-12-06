@@ -57,3 +57,10 @@ Output of csv files with the position information (from the HPPOSLLH message).
 
 ### pos
 Enable (1) or disable (0) the output of the UBX-NAV-HPPOSLLH message content in an output csv file.
+
+# Compilation under Linux
+stdafx_for_linux.h instead of stdafx.h (rename it accordingly)
+
+g++ -c stdafx.h -o stdafx.h.gch
+g++ -std=c++11 ParserLight.cpp OutputWriter.cpp Utils.cpp UbloxSpecs.cpp UbxReader.cpp OutputWriterRinex.cpp OutputWriterPos.cpp -I.
+

@@ -2,6 +2,7 @@
 #include "UbxReader.h"
 #include "myConstants.h"
 #include <string>
+#include <cstring>
 #include <vector>
 #include <bitset>
 
@@ -116,7 +117,7 @@ void UbxReader::extract_next_message(char *message, UbloxSpecs::UBX_HEAD *head_o
 	UbloxSpecs::UBX_HEAD ub_head;
 	UbloxSpecs::UBX_CHECKSUM ub_chksum;
 	*found = false;
-	char ub[2] = {0xb5, 0x62};
+	unsigned char ub[2] = {0xb5, 0x62};
 
 	// search 
 	while (file.tellg() < (size_t)file_size - 6)

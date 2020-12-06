@@ -4,7 +4,7 @@
 #include "myConstants.h"
 #include <string>
 #include <time.h>
-#include <string>
+#include <cstring>
 #include <algorithm>
 #include <iostream>
 

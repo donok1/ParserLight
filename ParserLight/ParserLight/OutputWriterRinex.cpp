@@ -6,6 +6,7 @@
 #include <cctype>
 #include <iostream>
 #include <string>
+#include <cstring>
 #include <vector>
 
 OutputWriterRinex::OutputWriterRinex(int mjd_valid)

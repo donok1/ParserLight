@@ -10,7 +10,7 @@ class Utils
 public:
     Utils();
 
-	static double Utils::JDfromYMDH(short int year, short int month, short int day, double hour)
+	static double JDfromYMDH(short int year, short int month, short int day, double hour)
 	{
 		long int jd12h;
 		double tjd;
@@ -25,15 +25,15 @@ public:
 		return (tjd);
 	}
 
-	static double Utils::MJDfromYMDH(short int year, short int month, short int day, double hour)
+	static double MJDfromYMDH(short int year, short int month, short int day, double hour)
 	{
 		double mjd;
-		mjd = Utils::JDfromYMDH(year, month, day, hour);
+		mjd = JDfromYMDH(year, month, day, hour);
 		mjd = mjd - 2400000.5;
 		return mjd;
 	}
 
-	static void Utils::YMDHfromJD(double tjd, short int *year, short int *month, short int *day, double *hour)
+	static void YMDHfromJD(double tjd, short int *year, short int *month, short int *day, double *hour)
 	{
 		long int jd, k, m, n;
 		double djd;
@@ -60,26 +60,26 @@ public:
 		return;
 	}
 
-	static void Utils::YMDHfromMJD(double mjd, short int *year, short int *month, short int *day, double *hour)
+	static void YMDHfromMJD(double mjd, short int *year, short int *month, short int *day, double *hour)
 	{
 		double jd;
 		jd = mjd + 2400000.5;
-		Utils::YMDHfromJD(jd, year, month, day, hour);
+		YMDHfromJD(jd, year, month, day, hour);
 	}
 
-	static void Utils::YearDoyFromMJD(double mjd, short int *year, short int *doy)
+	static void YearDoyFromMJD(double mjd, short int *year, short int *doy)
 	{
 		short int month;
 		short int day;
 		double hour;
 		double mjd0; // mjd at beginning of the year
 
-		Utils::YMDHfromMJD(mjd, year, &month, &day, &hour); // get the date of the mjd
-		mjd0 = Utils::MJDfromYMDH(*year, 1, 1, 0.0);
+		YMDHfromMJD(mjd, year, &month, &day, &hour); // get the date of the mjd
+		mjd0 = MJDfromYMDH(*year, 1, 1, 0.0);
 		*doy = (short)(mjd - mjd0 + 1);
 	}
 
-	static void Utils::WDfromMJD(double mjd, short int *week, short int *day)
+	static void WDfromMJD(double mjd, short int *week, short int *day)
 	{
 		double red_mjd;
 		red_mjd = mjd - 44244;
@@ -87,7 +87,7 @@ public:
 		*day = (short)(red_mjd - *week * 7);
 	}
 
-	static double Utils::MJDfromWD(short int week, double day)
+	static double MJDfromWD(short int week, double day)
 	{
 		return week * 7 + 44244 + day;
 	}

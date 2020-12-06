@@ -20,7 +20,7 @@ public:
 	virtual void parse_file(char *inbuffer);
 	
 	virtual void open_file(std::string file_name);
-	virtual void OutputWriter::close_file();
+	virtual void close_file();
 
 	virtual UbloxSpecs::UBX_HEAD get_reference_header();
 	virtual void parse_and_write(char *inbuffer);

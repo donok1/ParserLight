@@ -2,6 +2,8 @@
 #include "OutputWriterPos.h"
 #include "UbloxSpecs.h"
 #include <iostream>
+#include <cstring>
+#include <cmath>
 
 
 OutputWriterPos::OutputWriterPos()

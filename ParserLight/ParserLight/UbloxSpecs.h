@@ -1,6 +1,10 @@
 #pragma once
 #include <cinttypes>
 #include <vector>
+/* Update Revision
+ * 2020.12.07   donok1      Update RAWX to UBX-18010854 - R08, 28-May-2020, complient with HPG 1.13
+ */
+
 
 class UbloxSpecs
 {
@@ -81,7 +85,7 @@ public:
 		STD_FLAG cp_stdev;	/* Estimated phase measurement st. dev.*/
 		STD_FLAG do_stdev;	/* Estimated doppler measurement st. dev.*/
 		TRK_FLAG trk_stat;	/* Tracking status bitfield */
-		ub_u1 reserved3;	/* reserved3 */
+		ub_u1 reserved1;	/* reserved1 */
 	} UBX_RXM_RAWX_SV;
 
 	/* Container for a RXM_RAWX (0x02 0x15) messages */
@@ -92,7 +96,8 @@ public:
 		ub_i1 leap_s;					/* GPS leap seconds (GPS-UTC)*/
 		ub_u1 num_meas;					/* Number of measurements to follow */
 		REC_FLAG rec_stat;				/* receiver tracking status */
-		ub_u1 reserved1[3];				/* reserved1 */
+        ub_u1 version;                  /* Message version (0x01 for this version) */
+		ub_u1 reserved0[2];				/* reserved0 */
 		std::vector<UBX_RXM_RAWX_SV> meas;	/* Measurements */
 	} UBX_RXM_RAWX;
 

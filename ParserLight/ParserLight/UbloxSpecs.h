@@ -73,7 +73,7 @@ public:
 		ub_r4 do_mes;       /* Doppler measurement [Hz] */
 		ub_u1 gnss_id;		/* GNSS identifier*/
 		ub_u1 sv_id;        /* Space Vehicle Number */
-		ub_u1 reserved2;	/* reserved2 */
+		ub_u1 sig_id;		/* Signal ID */
 		ub_u1 freq_id;		/* GLONASS frequence id: slot + 7 (0 to 13) */
 		ub_u2 locktime;		/* Carrier phase locktime counter (max. 64500 ms) */
 		ub_u1 cno;          /* Signal strength C/No. (dbHz) */

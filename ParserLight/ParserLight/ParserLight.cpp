@@ -34,6 +34,7 @@ int main(int argc, char *argv[])
 	// options for RINEX
 	bool rinex_out = false;
 	int mjd_valid = 0;
+	int rinex_version = 3;
 	OutputWriterRinex::RINEX_HEADER_META meta_data;
 
 	// options for position output
@@ -54,6 +55,7 @@ int main(int argc, char *argv[])
 		// rinex options
 		if (strcmp(argv[i], "rinex") == 0) { rinex_out = check_option(argv[i + 1], "rinex"); continue; };
 		if (strcmp(argv[i], "mjd") == 0) { mjd_valid = atoi(argv[i + 1]); continue; };
+		if (strcmp(argv[i], "rinex_version") == 0) { rinex_version = atoi(argv[i + 1]); continue; };
 		// rinex header info
 		if (strcmp(argv[i], "run_by") == 0) { meta_data.run_by = argv[i + 1]; continue; };
 		if (strcmp(argv[i], "observer") == 0) { meta_data.observer = argv[i + 1]; continue; };

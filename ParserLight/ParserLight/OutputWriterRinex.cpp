@@ -16,6 +16,8 @@ OutputWriterRinex::OutputWriterRinex(int mjd_valid)
 	OutputWriterRinex::mjd_first_epoch = 0;
 	OutputWriterRinex::sec_first_epoch = 0;
 	OutputWriterRinex::leap_sec = 0;
+
+	OutputWriterRinex::rinex_version = 3;
 }
 
 OutputWriterRinex::OutputWriterRinex(int mjd_valid, OutputWriterRinex::RINEX_HEADER_META meta_data)
@@ -25,6 +27,8 @@ OutputWriterRinex::OutputWriterRinex(int mjd_valid, OutputWriterRinex::RINEX_HEA
 	OutputWriterRinex::mjd_first_epoch = 0;
 	OutputWriterRinex::sec_first_epoch = 0;
 	OutputWriterRinex::leap_sec = 0;
+
+	OutputWriterRinex::rinex_version = 3;
 
 	set_meta_data(meta_data);
 }
@@ -64,6 +68,12 @@ void OutputWriterRinex::set_meta_data(OutputWriterRinex::RINEX_HEADER_META meta_
 	rinex_header_info = meta_data;
 }
 
+void OutputWriterRinex::set_rinex_version(int version)
+{
+	OutputWriterRinex::rinex_version = version;
+}
+
+
 void OutputWriterRinex::set_first_epoch(int mjd, double sec, int leap_sec)
 {
 	OutputWriterRinex::mjd_first_epoch = mjd;
@@ -82,8 +92,17 @@ void OutputWriterRinex::write_header()
 	short int day;
 	short int doy;
 	char buffer[2000]; // buffer aimed to write the file
-	double rinex_version = 2.11;
+	double rinex_version = 0.00;
 	std::ostringstream string_stream;
+
+	if (OutputWriterRinex::rinex_version == 2)
+	{
+		rinex_version = 2.11;
+	}
+	if (OutputWriterRinex::rinex_version == 3)
+	{
+		rinex_version = 3.04;
+	}
 
 	/* Create a name following the rinex naming convention */
 	Utils::YMDHfromMJD(OutputWriterRinex::mjd_first_epoch, &year, &month, &day, &hour);
@@ -119,10 +138,28 @@ void OutputWriterRinex::write_header()
 	file << buffer;
 	sprintf(buffer, "%14.4f%14.4f%14.4f%18sANTENNA: DELTA H/E/N\n", rinex_header_info.delta_h, rinex_header_info.delta_e, rinex_header_info.delta_n, "");
 	file << buffer;
+	if (OutputWriterRinex::rinex_version == 3)
+	{
+		for (int i = 0; i < myConstants::MAX_ID; i++)
+		{
+			std::string temp = get_signals_string_per_GNSS(i, 1, 1, 0, 1);
+			if (temp.size() == 0)
+			{
+				continue;
+			}
+			sprintf(buffer, "%-60sSYS / # / OBS TYPES\n", temp.c_str());
+			file << buffer;
+		}
+	}
 	sprintf(buffer, "     1     1                                                WAVELENGTH FACT L1/2\n");
 	file << buffer;
-	sprintf(buffer, "     4    C1    L1    D1    S1                              # / TYPES OF OBSERV\n");
-	file << buffer;
+	
+	if (OutputWriterRinex::rinex_version == 2)
+	{
+		sprintf(buffer, "     4    C1    L1    D1    S1                              # / TYPES OF OBSERV\n");
+		file << buffer;
+	}
+	
 	sprintf(buffer, "  %4u    %2u    %2u    %2u    %2u   %10.7f     GPS         TIME OF FIRST OBS\n", (int)year, (int)month, (int)day, (int)hour, (int)minutes, sec);
 	file << buffer;
 	//sprintf(buffer, "  %4u    %2u    %2u    %2u    %2u   %10.7f     GPS         TIME OF LAST OBS\n", (int)year_end, (int)month_end, (int)day_end, (int)hour_end, (int)minutes_end, sec_end);
@@ -188,6 +225,7 @@ OutputWriterRinex::GNSS_EPOCH OutputWriterRinex::store_RAWX(char *inbuffer)
 			memcpy(&my_sv.do_mes, &inbuffer[i * 32 + 38], 4);
 			memcpy(&my_sv.gnss_id, &inbuffer[i * 32 + 42], 1);
 			memcpy(&my_sv.sv_id, &inbuffer[i * 32 + 43], 1);
+			memcpy(&my_sv.sig_id, &inbuffer[i * 32 + 44], 1);
 			memcpy(&my_sv.freq_id, &inbuffer[i * 32 + 45], 1);
 			memcpy(&my_sv.locktime, &inbuffer[i * 32 + 46], 2);
 			memcpy(&my_sv.cno, &inbuffer[i * 32 + 48], 1);
@@ -201,6 +239,7 @@ OutputWriterRinex::GNSS_EPOCH OutputWriterRinex::store_RAWX(char *inbuffer)
 			temp_meas.L1 = my_sv.cp_mes;
 			temp_meas.D1 = my_sv.do_mes;
 			temp_meas.sv_id = my_sv.sv_id;
+			temp_meas.sig_id = my_sv.sig_id;
 			temp_meas.gnss_id = my_sv.gnss_id;
 			temp_meas.freq_id = my_sv.freq_id;
 			temp_meas.locktime = my_sv.locktime;
@@ -221,7 +260,21 @@ OutputWriterRinex::GNSS_EPOCH OutputWriterRinex::store_RAWX(char *inbuffer)
 	return temp;
 }
 
-void OutputWriterRinex::write_message(OutputWriterRinex::GNSS_EPOCH my_gnss_epoch) {
+
+void OutputWriterRinex::write_message(OutputWriterRinex::GNSS_EPOCH my_gnss_epoch)
+{
+	if (OutputWriterRinex::rinex_version == 2)
+	{
+		write_message_2(my_gnss_epoch);
+	}
+	if (OutputWriterRinex::rinex_version == 3)
+	{
+		write_message_3(my_gnss_epoch);
+	}
+}
+
+
+void OutputWriterRinex::write_message_2(OutputWriterRinex::GNSS_EPOCH my_gnss_epoch) {
 	double mjd;
 	double sec;
 	short int minutes;
@@ -259,31 +312,20 @@ void OutputWriterRinex::write_message(OutputWriterRinex::GNSS_EPOCH my_gnss_epoc
 		std::string gnss_id = " ";
 		for (int j = 0; j < my_gnss_epoch.num_meas; j++)
 		{
-			switch (my_gnss_epoch.meas[j].gnss_id)
+			// skip everything which is not L1 in Rinex 2.11
+			if (my_gnss_epoch.meas[j].sig_id > 0)
 			{
-			case 0:
-				gnss_id = "G"; break; // GPS
-			case 1:
-				gnss_id = "S"; break; // SBAS
-			case 2:
-				gnss_id = "E"; break; // Galileo
-			case 3:
-				gnss_id = "X"; break; // BeiDou
-			case 4:
-				gnss_id = "X"; break; // IMES
-			case 5:
-				gnss_id = "X"; break; // QZSS
-			case 6:
-				gnss_id = "R"; break; // GLONASS
-			default:
-				gnss_id = "G";
+				continue;
 			}
+
+			gnss_id = get_constellation_id(my_gnss_epoch.meas[j].gnss_id);
+
 			if ((ceil(j / 12.0) == j / 12.0) && (j != 0)) // if more than 12 sats, use continuation line
 			{
 				sprintf(buffer, "\n                                ");
 				file << buffer;
 			}
-			sprintf(buffer, "%1s%2u", gnss_id.c_str(), my_gnss_epoch.meas[j].sv_id);
+			sprintf(buffer, "%1s%02u", gnss_id.c_str(), my_gnss_epoch.meas[j].sv_id);
 			file << buffer;
 		}
 		sprintf(buffer, "\n");
@@ -291,6 +333,11 @@ void OutputWriterRinex::write_message(OutputWriterRinex::GNSS_EPOCH my_gnss_epoc
 		/* writing the actual observations */
 		for (int j = 0; j < my_gnss_epoch.num_meas; j++)
 		{
+			if (my_gnss_epoch.meas[j].sig_id > 0)
+			{
+				continue;
+			}
+
 			/* C/A */
 			rinex_snr = std::min(std::max((int)ceil(my_gnss_epoch.meas[j].cno / 6.0), 1), 9);
 			sprintf(buffer, "%14.3f  ", my_gnss_epoch.meas[j].C1);
@@ -315,7 +362,7 @@ void OutputWriterRinex::write_message(OutputWriterRinex::GNSS_EPOCH my_gnss_epoc
 					rinex_lli = convert.str();
 				}
 			}
-			sprintf(buffer, "%14.3f%1s%1u ", my_gnss_epoch.meas[j].L1, rinex_lli.c_str(), rinex_snr);
+			sprintf(buffer, "%14.3f%1s%1u", my_gnss_epoch.meas[j].L1, rinex_lli.c_str(), rinex_snr);
 			file << buffer;
 			/* D1 */
 			sprintf(buffer, "%14.3f  ", my_gnss_epoch.meas[j].D1);
@@ -326,6 +373,288 @@ void OutputWriterRinex::write_message(OutputWriterRinex::GNSS_EPOCH my_gnss_epoc
 		}
 	}
 }
+
+void OutputWriterRinex::write_message_3(OutputWriterRinex::GNSS_EPOCH my_gnss_epoch) {
+	double mjd;
+	double sec;
+	short int minutes;
+	short int month;
+	short int year;
+	double hour;
+	short int day;
+	char buffer[2000]; // buffer aimed to write the file
+	int rinex_snr;
+	std::string rinex_lli;
+
+	if (my_gnss_epoch.num_meas <= 0)
+	{
+		return;
+	}
+
+	// time stuff
+	mjd = my_gnss_epoch.mjd;
+	Utils::YMDHfromMJD(mjd, &year, &month, &day, &hour);
+
+	// get the time of the epoch
+	sec = my_gnss_epoch.sec; // read the mjd of the first epoch
+
+	hour = (int)(sec / 3600);
+	minutes = (int)((sec - hour * 3600) / 60);
+	sec = sec - hour * 3600 - minutes * 60;
+
+	// gather measurements par sv
+	std::vector<std::vector<std::vector<GNSS_MEAS>>> meas_per_sv_per_GNSS;
+	std::vector<std::vector<int>> nb_rows_per_sv_per_GNSS;
+	// initialize
+	for (int i = 0; i < myConstants::MAX_ID; i++)
+	{
+		std::vector<std::vector<GNSS_MEAS>> temp_vec_vec_GNSS;
+		//
+		std::vector<int> temp_vec_int;
+		for (int j = 0; j < myConstants::MAX_PRN; j++)
+		{
+			std::vector<GNSS_MEAS> temp_vec_GNSS;
+			temp_vec_vec_GNSS.push_back(temp_vec_GNSS);
+			//
+			temp_vec_int.push_back(0);
+		}
+		meas_per_sv_per_GNSS.push_back(temp_vec_vec_GNSS);
+		//
+		nb_rows_per_sv_per_GNSS.push_back(temp_vec_int);
+	}
+
+	// populate
+	for (int j = 0; j < my_gnss_epoch.num_meas; j++)
+	{
+		int gnss_id = my_gnss_epoch.meas.at(j).gnss_id;
+		int sv_id = my_gnss_epoch.meas.at(j).sv_id;
+		int sig_id = my_gnss_epoch.meas.at(j).sig_id;
+
+		meas_per_sv_per_GNSS.at(gnss_id).at(sv_id).push_back(my_gnss_epoch.meas.at(j));
+		RINEX3_CODES my_code = get_rinex3_codes(gnss_id, sig_id);
+
+		nb_rows_per_sv_per_GNSS.at(gnss_id).at(sv_id) = std::max(nb_rows_per_sv_per_GNSS.at(gnss_id).at(sv_id), my_code.row_index + 1);
+	}
+
+	// get some statistics
+	int nb_unique_sv = 0;
+	for (int i = 0; i < myConstants::MAX_ID; i++)
+	{
+		for (int j = 0; j < myConstants::MAX_PRN; j++)
+		{
+			if (nb_rows_per_sv_per_GNSS.at(i).at(j) > 0)
+			{
+				nb_unique_sv = nb_unique_sv + 1;
+			}
+		}
+	}
+
+	// start writing the file
+	sprintf(buffer, "> %04u %2u %2u %2u %2u %11.7f  %1u%3u\n", (int)year, (int)month, (int)day, (int)hour, (int)minutes, sec, 0, nb_unique_sv);
+	file << buffer;
+
+	// write the epochs
+	// iterate over gnss_ids and sv_ids
+	for (int i = 0; i < myConstants::MAX_ID; i++)
+	{
+		for (int j = 0; j < myConstants::MAX_PRN; j++)
+		{
+			// continue if there is nothing to write
+			if (nb_rows_per_sv_per_GNSS.at(i).at(j) == 0)
+			{
+				continue;
+			}
+
+			// create an empty vector to sort the measurements according to row index
+			std::vector<GNSS_MEAS> current_meas;
+			for (int k = 0; k < nb_rows_per_sv_per_GNSS.at(i).at(j); k++)
+			{
+				GNSS_MEAS temp;
+				current_meas.push_back(temp);
+			}
+			
+			// fill the current measures in a vector that represents the actual rows
+			for (int m = 0; m < meas_per_sv_per_GNSS.at(i).at(j).size(); m++)
+			{
+				int gnss_id = meas_per_sv_per_GNSS.at(i).at(j).at(m).gnss_id;
+				int sv_id = meas_per_sv_per_GNSS.at(i).at(j).at(m).sv_id;
+				int sig_id = meas_per_sv_per_GNSS.at(i).at(j).at(m).sig_id;
+
+				RINEX3_CODES my_code = get_rinex3_codes(gnss_id, sig_id);
+				current_meas.at(my_code.row_index) = meas_per_sv_per_GNSS.at(i).at(j).at(m);
+			}
+
+			// write the system code
+			std::string gnss_id = get_constellation_id(meas_per_sv_per_GNSS.at(i).at(j).at(0).gnss_id);
+			sprintf(buffer, "%1s%02u", gnss_id.c_str(), meas_per_sv_per_GNSS.at(i).at(j).at(0).sv_id);
+			file << buffer;
+
+			// fill
+			for (int m = 0; m < current_meas.size(); m++)
+			{
+				if (current_meas.at(m).C1 == 0)
+				{
+					// empty record
+					sprintf(buffer, "%48s", "");
+					file << buffer;
+					continue;
+				}
+
+				/* Code */
+				rinex_snr = std::min(std::max((int)ceil(current_meas.at(m).cno / 6.0), 1), 9);
+				sprintf(buffer, "%14.3f  ", current_meas.at(m).C1);
+				file << buffer;
+				/* Phase and indicators */
+				rinex_lli = " ";
+				if (current_meas.at(m).lol == -1)
+				{
+					// rinex loss of lock indicator is put to 2 in case of half cycle ambiguities
+					if (current_meas.at(m).half_cycle_valid == 0) { rinex_lli = "2"; };
+				}
+				else
+				{
+					if (current_meas.at(m).lol > 0)
+					{
+						std::stringstream convert;
+						convert << current_meas.at(m).lol;
+						rinex_lli = convert.str();
+					}
+				}
+				sprintf(buffer, "%14.3f%1s%1u", current_meas.at(m).L1, rinex_lli.c_str(), rinex_snr);
+				file << buffer;
+				/* Doppler */
+				// If doppler is enabled -> you have to adapt the header !
+				// sprintf(buffer, "%14.3f  ", current_meas.at(m).D1);
+				// file << buffer;
+				/* SNR */
+				sprintf(buffer, "%14.3f  ", (double)current_meas.at(m).cno);
+				file << buffer;
+			}
+			sprintf(buffer, "\n");
+			file << buffer;
+		}
+	}	
+}
+
+std::string OutputWriterRinex::get_signals_string_per_GNSS(int gnss_id, bool ca, bool l, bool d, bool cn0)
+{
+	int nb_signals = 0;
+	char buffer[2000];
+	std::string string_codes;
+	std::stringstream ss;
+	
+	for (int i = 0; i < myConstants::MAX_SIG_ID; i++)
+	{
+		RINEX3_CODES my_code = get_rinex3_codes(gnss_id, i);
+		if (my_code.row_index == -1)
+		{
+			// answer for an non existing constellation
+			if (i == 0)
+			{
+				return "";
+			}
+			break;
+		}
+		if (ca) { string_codes = string_codes + " " + my_code.code_code; nb_signals = nb_signals + 1;};
+		if (l) { string_codes = string_codes + " " + my_code.code_phase; nb_signals = nb_signals + 1;};
+		if (d) { string_codes = string_codes + " " + my_code.code_doppler; nb_signals = nb_signals + 1;};
+		if (cn0) { string_codes = string_codes + " " + my_code.code_signal; nb_signals = nb_signals + 1;};
+	}
+
+	sprintf(buffer, "%s  %3i %s", get_constellation_id(gnss_id).c_str(), nb_signals, string_codes.c_str());
+	ss << buffer;
+
+	std::string output_string = ss.str();
+	return output_string;
+}
+
+
+
+OutputWriterRinex::RINEX3_CODES OutputWriterRinex::get_rinex3_codes(int gnss_id, int sig_id)
+{
+	OutputWriterRinex::RINEX3_CODES my_code;
+
+	int row_index = -1;
+	std::string code_code = "";
+	std::string code_phase = "";
+	std::string code_doppler = "";
+	std::string code_signal = "";
+
+	if (gnss_id == 0 && sig_id == 0) { row_index = 0; code_code = "C1C"; code_phase = "L1C"; code_doppler = "D1C"; code_signal = "S1C";};
+	if (gnss_id == 0 && sig_id == 3) { row_index = 1; code_code = "C2L"; code_phase = "L2L"; code_doppler = "D2L"; code_signal = "S2L";};
+	if (gnss_id == 0 && sig_id == 4) { row_index = 2; code_code = "C2X"; code_phase = "L2X"; code_doppler = "D2X"; code_signal = "S2X";};
+	if (gnss_id == 1 && sig_id == 0) { row_index = 0; code_code = "C1C"; code_phase = "L1C"; code_doppler = "D1C"; code_signal = "S1C";};
+	if (gnss_id == 2 && sig_id == 0) { row_index = 0; code_code = "C1C"; code_phase = "L1C"; code_doppler = "D1C"; code_signal = "S1C";};
+	if (gnss_id == 2 && sig_id == 1) { row_index = 1; code_code = "C1X"; code_phase = "L1X"; code_doppler = "D1X"; code_signal = "S1X";};
+	if (gnss_id == 2 && sig_id == 5) { row_index = 2; code_code = "C7I"; code_phase = "L7I"; code_doppler = "D7I"; code_signal = "S7I";};
+	if (gnss_id == 2 && sig_id == 6) { row_index = 3; code_code = "C7Q"; code_phase = "L7Q"; code_doppler = "D7Q"; code_signal = "S7Q";};
+	if (gnss_id == 3 && sig_id == 0) { row_index = 0; code_code = "C2I"; code_phase = "L2I"; code_doppler = "D2I"; code_signal = "S2I";};
+	if (gnss_id == 3 && sig_id == 1) { row_index = 0; code_code = "C2I"; code_phase = "L2I"; code_doppler = "D2I"; code_signal = "S2I";};
+	if (gnss_id == 3 && sig_id == 2) { row_index = 1; code_code = "C7I"; code_phase = "L7I"; code_doppler = "D7I"; code_signal = "S7I";};
+	if (gnss_id == 3 && sig_id == 3) { row_index = 1; code_code = "C7I"; code_phase = "L7I"; code_doppler = "D7I"; code_signal = "S7I";};
+	if (gnss_id == 5 && sig_id == 0) { row_index = 0; code_code = "C1C"; code_phase = "L1C"; code_doppler = "D1C"; code_signal = "S1C";};
+	if (gnss_id == 5 && sig_id == 1) { row_index = 1; code_code = "C1S"; code_phase = "L1S"; code_doppler = "D1S"; code_signal = "S1S";};
+	if (gnss_id == 5 && sig_id == 4) { row_index = 2; code_code = "C2S"; code_phase = "L2S"; code_doppler = "D2S"; code_signal = "S2S";};
+	if (gnss_id == 5 && sig_id == 5) { row_index = 3; code_code = "C2L"; code_phase = "L2L"; code_doppler = "D2L"; code_signal = "S2L";};
+	if (gnss_id == 6 && sig_id == 0) { row_index = 0; code_code = "C1C"; code_phase = "L1C"; code_doppler = "D1C"; code_signal = "S1C";};
+	if (gnss_id == 6 && sig_id == 2) { row_index = 1; code_code = "C2C"; code_phase = "L2C"; code_doppler = "D2C"; code_signal = "S2C";};
+
+	/*
+	0 0 0 C1C L1C D1C S1C
+	0 3 1 C2L L2L D2L S2L
+	0 4 2 C2X L2X D2X S2X
+	2 0 0 C1C L1C D1C S1C
+	2 1 1 C1X L1X D1X S1X
+	2 5 2 C7I L7I D7I S7I
+	2 6 3 C7Q L7Q D7Q S7Q
+	3 0 0 C2I L2I D2I S2I
+	3 1 0 C2I L2I D2I S2I
+	3 2 1 C7I L7I D7I S7I
+	3 3 1 C7I L7I D7I S7I
+	5 0 0 C1C L1C D1C S1C
+	5 1 1 C1S L1S D1S S1S
+	5 4 2 C2S L2S D2S S2S
+	5 5 3 C2L L2L D2L S2L
+	6 0 0 C1C L1C D1C S1C
+	6 2 1 C2C L2C D2C S2C
+	*/
+
+	my_code.row_index = row_index;
+	my_code.code_code = code_code;
+	my_code.code_phase = code_phase;
+	my_code.code_doppler = code_doppler;
+	my_code.code_signal = code_signal;
+
+	return my_code;
+}
+
+std::string OutputWriterRinex::get_constellation_id(int gnss_id)
+{
+	std::string my_string;
+
+	switch (gnss_id)
+	{
+	case 0:
+		my_string = "G"; break; // GPS
+	case 1:
+		my_string = "S"; break; // SBAS
+	case 2:
+		my_string = "E"; break; // Galileo
+	case 3:
+		my_string = "X"; break; // BeiDou
+	case 4:
+		my_string = "X"; break; // IMES
+	case 5:
+		my_string = "X"; break; // QZSS
+	case 6:
+		my_string = "R"; break; // GLONASS
+	default:
+		my_string = "G";
+	}
+
+	return my_string;
+}
+
 
 void OutputWriterRinex::parse_and_write(char * inbuffer)
 {

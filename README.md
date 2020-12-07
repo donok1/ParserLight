@@ -33,6 +33,9 @@ If this option is enabled, mjd is mandatory.
 #### mjd
 It is mandatory to provide the Modified Julian Date of the desired epochs if a rinex output is chosen.
 
+#### rinex_version
+Set this variable to 2 or 3, to switch either to Rinex Version 2.11 or to Rinex Version 3.04 output. Default is set to 3. Please consider, that with Rinex 2.11, only L1 C/A will be output. To benefit from mutli-frequency signals, use Rinex 3.04.
+
 ### Rinex header options
 #### run_by
 #### observer

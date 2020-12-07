@@ -5,11 +5,15 @@
 
 #pragma once
 
-#include "targetver.h"
-
 #include <stdio.h>
-#include <tchar.h>
 
-
+#ifdef __APPLE__
+    #include <string>
+#elif __linux__
+    #include <string>
+#else
+	#include "targetver.h"
+	#include <tchar.h>
+#endif
 
 // TODO: reference additional headers your program requires here

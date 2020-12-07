@@ -65,5 +65,5 @@ stdafx_for_linux.h instead of stdafx.h (rename it accordingly)
 
 g++ -c stdafx.h -o stdafx.h.gch
 
-g++ -std=c++11 ParserLight.cpp OutputWriter.cpp Utils.cpp UbloxSpecs.cpp UbxReader.cpp OutputWriterRinex.cpp OutputWriterPos.cpp -I.
+g++ -std=c++11 ParserLight.cpp OutputWriter.cpp Utils.cpp UbloxSpecs.cpp UbxReader.cpp OutputWriterRinex.cpp OutputWriterPos.cpp -I . -o ParserLight
 
